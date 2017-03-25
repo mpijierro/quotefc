@@ -44,9 +44,9 @@ class Scraper
             ( ! $this->lastPage) OR
             ($this->lastPage > self::LAST_PAGE_THREAD) OR
             ($this->currentPage > $this->lastPage) OR
-            (($this->lastPage - $this->currentPage) > NUM_PAGINAS)
+            (($this->lastPage - $this->currentPage) > Thread::NUM_PAGINAS)
         ) {
-            $this->lastPage = $this->currentPage + NUM_PAGINAS;
+            $this->lastPage = $this->currentPage + Thread::NUM_PAGINAS;
         }
 
     }
@@ -104,8 +104,13 @@ class Scraper
             $this->currentPage = 1;
         }
 
-        if ((empty($lastPage)) OR ( ! is_numeric($lastPage)) OR ( ! $lastPage) OR ($lastPage > 54) OR ($this->currentPage > $lastPage) OR (($lastPage - $this->currentPage) > NUM_PAGINAS)) {
-            $lastPage = $this->currentPage + NUM_PAGINAS - 1;
+        if ((empty($lastPage)) OR
+            ( ! is_numeric($lastPage)) OR
+            ( ! $lastPage) OR ($lastPage > self::LAST_PAGE_THREAD) OR
+            ($this->currentPage > $lastPage) OR
+            (($lastPage - $this->currentPage) > Thread::NUM_PAGINAS)
+        ) {
+            $lastPage = $this->currentPage + Thread::NUM_PAGINAS - 1;
         }
 
         $isFinal = false;
@@ -155,14 +160,9 @@ class Scraper
 
                         if (preg_match_all($pattern, $postContent, $output)) {
 
-
                             $pattern = '#postcount([0-9]+)#i';
                             preg_match_all($pattern, $postContent, $outputPost);
                             $id_post = $outputPost[1][0];
-
-                            //var_dump($postContent, $output, $outputPost);
-
-                            //d($id_post);
 
                             $page->quoted();
                             $page->setUrl($this->originUrl . "&page=" . $this->currentPage . "#post" . $id_post);
@@ -176,7 +176,7 @@ class Scraper
                 $this->currentPage++;
                 $limitCounter++;
 
-                if (($this->currentPage > $lastPage) OR ($limitCounter > MAX_LIMIT)) {
+                if (($this->currentPage > $lastPage) OR ($limitCounter > Searcher::MAX_LIMIT)) {
                     $isFinal = true;
                 }
 
