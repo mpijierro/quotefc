@@ -10,11 +10,25 @@
 <body>
 <?php
 
+function d($parametros, $fin = true)
+{
+    echo "<pre>";
+    print_r($parametros);
+    echo "</pre>";
+
+    if ($fin) {
+        die ('fin');
+    }
+}
+
 include(__DIR__ . '/constantes.php');
 include(__DIR__ . '/VBulletin.php');
+include(__DIR__ . '/Searcher.php');
 include(__DIR__ . '/Thread.php');
+include(__DIR__ . '/Scraper.php');
+include(__DIR__ . '/Page.php');
 
-$thread = new Thread();
+$searcher = new Searcher();
 
 if ($_POST) {
 
@@ -22,222 +36,48 @@ if ($_POST) {
 
     $error = false;
 
-    $thread->configSearch();
+    $searcher->configSearch();
 
-    foreach ($thread->getThreads() AS $busqueda) {
+    foreach ($searcher->getThreads() AS $thread) {
+
         ?>
-        <div class="resultado">
 
         <div class="resultado_datos">
 
-            <br/>HILO: <strong><?php echo $busqueda['hilo'] ?> </strong>
-            <br/>USUARIO: <strong><?php echo $busqueda['usuario'] ?></strong>
-            <br/>PÁGINA INICIO: <strong><?php echo $busqueda['inicio'] ?></strong>
-            <br/>PÁGINA FINAL: <strong><?php echo $busqueda['final'] ?></strong>
+            <br/>HILO: <strong><?php echo $thread->getUrl() ?> </strong>
+            <br/>USUARIO: <strong><?php echo $thread->getUserSearched() ?></strong>
+            <br/>PÁGINA INICIO: <strong><?php echo $thread->getFirstPage() ?></strong>
+            <br/>PÁGINA FINAL: <strong><?php echo $thread->getLastPage() ?></strong>
         </div>
 
         <?php
 
-        // ******************************************
-        // 1) Comprobar que la url es de Forocoches
-        // ******************************************
-        $url_origen = $busqueda['hilo'];
-        $patron = "/^(http:\/\/www.forocoches.com)/i";
+        $scraper = new Scraper($thread);
+        $scraper->scrapThread();
 
-        if (( ! preg_match($patron, $url_origen, $salida)) OR (empty($busqueda['hilo']))) {
-            $error = true;
-            ?>
-            <span class="resultados no_citado alone">
-			    <img src="gordo.jpg"/> ¡¡ NO has indicado una página de Forocoches !!<br/>
-			</span>
-            <?php
-        }
+        foreach ($scraper->getPages() as $page) {
 
-        if ( ! $error) {
-
-            // ******************************************
-            // 2) Obtener el id del hilo
-            // ******************************************
-            $url_origen = $busqueda['hilo'];
-            $patron = "/(t|p)=([0-9]+)/";
-
-            if ( ! preg_match($patron, $url_origen, $hilo)) {
-                $error = true;
+            if ($page->isQuoted()) {
                 ?>
-                <span class="resultados no_citado alone">
-				    <img src="gordo.jpg"/>¡¡ NO se ha encontrado un indicador de hilo correcto !!<br/>
-				</span>
-                <?php
-            }
-        }
-
-        if ( ! $error) {
-
-            // ******************************************
-            // 2.2) Obtener el user a buscar
-            // ******************************************
-            if (empty($busqueda['usuario'])) {
-                $error = true;
-                ?>
-                <span class="resultados no_citado alone">
-				    <img src="gordo.jpg"/> ¡¡ NO has indicado un usuario para buscar !!
-				</span>
-                <?php
-            }
-        }
-
-        if ( ! $error) {
-
-            $id_hilo = $hilo[1] . "=" . $hilo[2];
-
-            /** ********************************************************************** */
-            /** *************************INICIO PROCESO******************************* */
-            /** ********************************************************************** */
-
-            $url_origen = "http://www.forocoches.com/foro/showthread.php?" . $id_hilo;
-
-            // ***********************************************
-            //3) Obtener números de página de inicio y fin
-            // ***********************************************
-            $inicio = $busqueda['inicio'];
-            $fin = $busqueda['final'];
-
-            if (( ! empty($inicio)) AND (is_numeric($inicio)) AND ($inicio) AND ($inicio < 54)) {
-                $pagina = $inicio;
-            } else {
-                $pagina = 1;
-            }
-
-            if ((empty($fin)) OR ( ! is_numeric($fin)) OR ( ! $fin) OR ($fin > 54) OR ($pagina > $fin) OR (($fin - $pagina) > NUM_PAGINAS)) {
-                $fin = $pagina + NUM_PAGINAS;
-            }
-
-            $final = false;
-            $ultimo_tamanio = 0;
-            ?>
-            <?php
-            // ************************************************************
-            //4) Obtener usuario y contraseñaa. Crear conexión con el foro
-            // ************************************************************
-            if (( ! empty($busqueda['user'])) AND ( ! empty($busqueda['clave']))) {
-                login_vbulletin($busqueda['user'], $busqueda['clave'], URL_LOGIN);
-
-                if (( ! empty($busqueda['user'])) AND (file_exists($busqueda['user'] . '.txt'))) {
-                    chmod($busqueda['user'] . ".txt", 0777);
-                }
-            }
-
-            $nombre_cookie = './' . $busqueda['user'] . '.txt';
-            $num_citaciones = 0;
-            $max_limit = 0;
-
-            while ( ! $final) {
-
-                ob_start();
-
-                $url_busqueda = $url_origen . "&page=" . $pagina;
-
-                //obtener contenido de la página
-                $s = curl_init($url_busqueda);
-                curl_setopt($s, CURLOPT_HEADER, true);
-                curl_setopt($s, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($s, CURLOPT_COOKIEFILE, $nombre_cookie);
-                curl_setopt($s, CURLOPT_COOKIEJAR, $nombre_cookie);
-                curl_setopt($s, CURLOPT_RETURNTRANSFER, true);
-                $contenido = curl_exec($s);
-
-                if ($ultimo_tamanio == strlen($contenido)) {
-                    $final = true;
-                } else {
-
-                    $ultimo_tamanio = strlen($contenido);
-
-                    // Comprobar que  la página tiene posts
-                    $patron = "/<div id=\"posts\">/";
-
-                    if ( ! preg_match($patron, $contenido, $salida)) {
-                        ?>
-                        <span class="resultados no_citado">
-					    ¡¡ No se han encontrado post en la página indicada !! <img src="gordo.jpg"/>
-					</span>
-                        <?php
-                        $final = true;
-                    } else {
-
-                        // 1) Extraemos los posts de la página
-                        $patron = "#<table id=\"post([0-9]+)\"#i";
-                        $division = preg_split($patron, $contenido);
-
-                        $citado = false;
-
-                        foreach ($division AS $indice => $contenido) {
-
-                            // 2) Obtenemos el id del post
-                            $patron = "#<div id=\"post_message_([0-9]+)\">#i";
-                            $patron = '#post([0-9]+)#i';
-                            if (preg_match_all($patron, $contenido, $salida_posts)) {
-
-                                $id_post = $salida_posts[1][0];
-
-                                // 3) Buscamos el usuario en alguna cita
-                                $patron = "/<b>" . $busqueda['usuario'] . "<\/b>/i";
-                                if (preg_match_all($patron, $contenido, $salida_posts)) {
-
-                                    $citado = true;
-                                    $num_citaciones++;
-                                    $url_post = $url_busqueda . "#post" . $id_post;
-                                    ?>
-                                    <span class="resultados citado">
+                <span class="resultados citado">
 							    <img src="roto2.png"/>&nbsp;&nbsp;
-                                        <?php echo $busqueda['usuario'] ?> ha sido CITADO en la página <strong><?php echo $pagina ?></strong>
-							    <a href="<?php echo $url_post ?>" target="_blank" style="color:green;font-weight:bold;" title="Ver el post">VER POST</a>
+                    <?php echo $thread->getUserSearched() ?> ha sido CITADO en la página <strong><?php echo $page->getPage() ?></strong>
+							    <a href="<?php echo $page->getUrl() ?>" target="_blank" style="color:green;font-weight:bold;" title="Ver el post">VER POST</a>
 							</span>
-                                    <?php
-                                }
-                            }
-                        }
 
-                        if ( ! $citado) {
-                            ?>
-                            <span class="resultados no_citado">
-						<?php echo $busqueda['usuario'] ?> NO ha sido citado en la página <strong><?php echo $pagina ?></strong>
-						</span>
-                            <?php
-                        }
-                    }
-
-                    $pagina++;
-                    $max_limit++;
-
-                    if (($pagina > $fin) OR ($max_limit > MAX_LIMIT)) {
-                        $final = true;
-                    }
-                }
-                ob_end_flush();
-                flush();
-            }
-
-            if (($max_limit) AND ( ! $num_citaciones)) {
-                ?>
-                <span class="resultados no_citado alone">
-				    NO has sido citado en ningún post ... <img src="alone.png"/>
-				</span>
                 <?php
             }
 
 
-            if (( ! empty($busqueda['user'])) AND (file_exists($busqueda['user'] . '.txt'))) {
-                unlink($busqueda['user'] . '.txt');
-            }
-            ?>
-
-            </div>
-            <?php
         }
+
+
     }
+
+
 }
 
-$contenido_textarea = $thread->retrieveThreadsFromFile();
+$contenido_textarea = $searcher->retrieveThreadsFromFile();
 
 ?>
 
@@ -246,35 +86,33 @@ $contenido_textarea = $thread->retrieveThreadsFromFile();
     <div class="titulo">
         <span class="script">Quote FC</span>
         ¿Te crees que has escrito un post mítico?...¿quieres saber si te han citado en alguna parte de un hilo?...Tus opiniones son tomadas
-        en cuenta o por el contrario eres considerado un troll más y no pintas nada en los hilos. Para descubrir todo esto, aquí tienes una herramienta que puede servirte.<br>
-        Y sobre todo, porque citar es nuestra costumbre y además de respetarla, hay que mantenerla. Además, puede fomentar el diálo, el debate e incluso el trolleo en Forocoches.com.
-        ¡¡Disfruten lo citado y lo programado...o lo faileado!!.
+        en cuenta o por el contrario eres considerado un troll más y no pintas nada en Forocoches.
     </div>
 
     <div class="campo largo">
         <span>HILO</span>
-        <input type="text" name="hilo" class="largo" value=""/>
+        <input type="text" name="hilo" class="largo" value="http://www.forocoches.com/foro/showthread.php?t=5504714"/>
         <img src='ayuda.png' title="Copia aquí la dirección completa del hilo de forocoches en el cual quieras buscar al usuario citado"
              alt="Copia aquí la direcciín completa del hilo de forocoches en el cual quieras buscar al usuario citado"
         />
     </div>
     <div class="campo">
         <span>USUARIO BúSQUEDA</span>
-        <input type="text" class="medio" name="usuario" value=""/>
+        <input type="text" class="medio" name="usuario" value="Acidog"/>
         <img src='ayuda.png' title="Indica el usuario que quieras buscar para ver si ha sido citado"
              alt="Indica el usuario que quieras buscar para ver si ha sido citado"
         />
     </div>
     <div class="campo corto">
         <span>PÁGINA INICIO</span>
-        <input type="text" class="corto" name="inicio" maxlength="2"/>
+        <input type="text" class="corto" name="inicio" maxlength="2" value="1"/>
         <img src='ayuda.png' title="Indica la página de inicio para iniciar la búsqueda"
              alt="Indica la página de inicio para iniciar la búsqueda"
         />
     </div>
     <div class="campo corto">
         <span>PÁGINA FINAL</span>
-        <input type="text" class="corto" name="final" maxlength="2"/>
+        <input type="text" class="corto" name="final" maxlength="2" value="2"/>
         <img src='ayuda.png' title="Indica la página de final. En cualquier caso, la búsqueda funcionará en 10 páginas como máximo."
              alt="Indica la página de final. En cualquier caso, la búsqueda funcionará en 10 páginas como máximo."
         />

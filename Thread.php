@@ -1,168 +1,228 @@
 <?php
 
+
 class Thread
 {
-    const FICHERO_INFO_HILOS = 'hilos.txt';
-    const SEPARADOR = ':::';
+    const PAGE_INITIAL = 1;
     const NUM_PAGINAS = 10;
-    const MAX_LIMIT = 15;
-    const MAX_HILOS = 10;
+
     const POSITION_THREAD = 0;
     const POSITION_USER_SEARCHED = 1;
     const POSITION_START = 2;
     const POSITION_END = 3;
     const USER_LOGIN = 4;
     const USER_PASSWORD = 5;
-    const PAGE_INITIAL = 1;
 
-    private $threads = [];
+    private $url = '';
+    private $idThreadType = '';
+    private $numberThread = '';
+    private $idThread = '';
+    private $userSearched = '';
+    private $firstPage = '';
+    private $lastPage = '';
+    private $user = '';
+    private $password = '';
 
-    public function getThreads()
+    private $lineArray = [];
+
+
+    public function getUrl()
     {
-        return $this->threads;
+        return $this->url;
     }
 
-    public function configSearch()
+    public function getIdThread()
     {
-        if (isset($_POST['hilos'])) {
-            $this->parserThreads();
+        return $this->idThread;
+    }
 
-        } else {
-            $this->defaultConfig();
+    public function getUserSearched()
+    {
+        return $this->userSearched;
+    }
+
+    public function getFirstPage()
+    {
+        return $this->firstPage;
+    }
+
+    public function getLastPage()
+    {
+        return $this->lastPage;
+    }
+
+
+    public function getUser()
+    {
+        return $this->user;
+    }
+
+
+    public function getPassword()
+    {
+        return $this->password;
+    }
+
+    public function retrieveBuildIdThread()
+    {
+        return $this->idThreadType . '=' . $this->numberThread;
+    }
+
+    public function configFromRequest()
+    {
+
+        $this->url = $_POST['hilo'];
+        $this->userSearched = $_POST['usuario'];
+        $this->firstPage = $_POST['inicio'];
+        $this->lastPage = $_POST['final'];
+        $this->user = $_POST['user'];
+        $this->password = $_POST['clave'];
+
+        $this->checkThreadIsValid();
+    }
+
+    public function configFromArray($lineArray = [])
+    {
+
+        $this->lineArray = $lineArray;
+
+        $this->configUrl();
+
+        $this->configUserSearched();
+
+        $this->configFirstPage();
+
+        $this->configLastPage();
+
+        $this->configLogin();
+
+        $this->checkThreadIsValid();
+
+    }
+
+
+    private function configUrl()
+    {
+        $this->url = $this->sanitize($this->lineArray[self::POSITION_THREAD]);
+    }
+
+    private function configUserSearched()
+    {
+        $this->userSearched = $this->sanitize($this->lineArray[self::POSITION_USER_SEARCHED]);
+    }
+
+    public function configFirstPage()
+    {
+
+        $this->firstPage = self::PAGE_INITIAL;
+
+        $existStartConfig = (isset($this->lineArray[self::POSITION_START]) AND (is_numeric($this->lineArray[self::POSITION_START])));
+
+        if ($existStartConfig) {
+            $this->firstPage = $this->lineArray[self::POSITION_START];
         }
 
     }
 
-    private function parserThreads()
-    {
-        $lineNumber = 1;
-        $contentTextarea = array_slice(explode("\n", trim($_POST['hilos'])), 0, 50);
-
-        foreach ($contentTextarea AS $line) {
-
-            $busqueda = array();
-            $busqueda_correcta = true;
-            $lineArray = explode(self::SEPARADOR, $line);
-
-            if ( ! empty($lineArray[self::POSITION_THREAD])) {
-                $busqueda['hilo'] = $this->sanitize($lineArray[self::POSITION_THREAD]);
-            } else {
-                $busqueda_correcta = false;
-            }
-
-            if (( ! empty($lineArray[1])) AND ($busqueda_correcta)) {
-                $busqueda['usuario'] = $this->sanitize($lineArray[self::POSITION_USER_SEARCHED]);
-            } else {
-                $busqueda_correcta = false;
-            }
-
-            if ((isset($lineArray[self::POSITION_START])) AND (is_numeric($lineArray[self::POSITION_START])) AND ($busqueda_correcta)) {
-                $busqueda['inicio'] = $lineArray[self::POSITION_START];
-            } else {
-                $busqueda['inicio'] = self::PAGE_INITIAL;
-            }
-
-            if ((isset($lineArray[self::POSITION_END])) AND (is_numeric($lineArray[self::POSITION_END])) AND ($busqueda_correcta)) {
-                $busqueda['final'] = $lineArray[self::POSITION_END];
-            } else {
-                $busqueda['final'] = self::NUM_PAGINAS;
-            }
-
-            if (( ! empty($lineArray[self::USER_LOGIN])) AND ( ! empty($lineArray[self::USER_PASSWORD])) AND ($busqueda_correcta)) {
-                $busqueda['user'] = $this->sanitize($lineArray[self::USER_LOGIN]);
-                $busqueda['clave'] = $this->sanitize($lineArray[self::USER_PASSWORD]);
-            } else {
-                $busqueda['user'] = '';
-                $busqueda['clave'] = '';
-            }
-
-            if ($busqueda_correcta) {
-                $this->threads[] = $busqueda;
-            } else {
-                $this->threads[] = "Error leyendo información de la línea " . $lineNumber;
-            }
-
-            $lineNumber++;
-        }
-
-        $this->saveThreadInFile($this->threads);
-    }
-
-    private function defaultConfig()
-    {
-        $this->threads[] = array(
-            'hilo' => $this->sanitize($_POST['hilo']),
-            'usuario' => $this->sanitize($_POST['usuario']),
-            'inicio' => $this->sanitize($_POST['inicio']),
-            'final' => $this->sanitize($_POST['final']),
-            'user' => $this->sanitize($_POST['user']),
-            'clave' => $this->sanitize($_POST['clave'])
-        );
-    }
-
-    private function sanitize($value)
-    {
-        return trim($value);
-    }
-
-    public function savePrivateData($campo)
+    public function configLastPage()
     {
 
-        if (($campo != 'user') AND ($campo != 'clave')) {
-            return true;
-        } elseif (GUARDAR_ACCESO) {
-            return true;
+        $this->lastPage = self::NUM_PAGINAS;
+
+        $existEndConfig = (isset($this->lineArray[self::POSITION_END]) AND (is_numeric($this->lineArray[self::POSITION_END])));
+
+        if ($existEndConfig) {
+            $this->lastPage = $this->lineArray[self::POSITION_END];
         }
-
-        return false;
-    }
-
-    /**
-     * Info de los hilos introducidos en el textarea
-     *
-     */
-    public function saveThreadInFile($hilos)
-    {
-
-        if (file_exists(self::FICHERO_INFO_HILOS)) {
-            unlink(self::FICHERO_INFO_HILOS);
-        }
-
-        $fp = fopen(self::FICHERO_INFO_HILOS, "w+");
-
-        foreach ($hilos AS $hilo) {
-
-            $linea = '';
-            foreach ($hilo AS $campo => $dato) {
-                if ($this->savePrivateData($campo)) {
-                    $linea .= trim($dato) . SEPARADOR;
-                }
-            }
-            fwrite($fp, $linea . PHP_EOL);
-
-        }
-        chmod(FICHERO_INFO_HILOS, 0777);
-        fclose($fp);
-    }
-
-
-    public function retrieveThreadsFromFile()
-    {
-
-        if ( ! file_exists(FICHERO_INFO_HILOS)) {
-            return;
-        }
-
-        $fp = fopen(FICHERO_INFO_HILOS, "r");
-        $hilos = '';
-        while ( ! feof($fp)) {
-            $hilos .= fgets($fp);
-        }
-        fclose($fp);
-
-        return $hilos;
 
     }
 
+    public function configLogin()
+    {
+
+        $existUser = ! empty($lineArray[self::USER_LOGIN]);
+        $existPassword = ! empty($lineArray[self::USER_PASSWORD]);
+
+        if ($existUser AND $existPassword) {
+            $this->user = $this->sanitize($lineArray[self::USER_LOGIN]);
+            $this->password = $this->sanitize($lineArray[self::USER_PASSWORD]);
+        }
+
+    }
+
+
+    private function checkThreadIsValid()
+    {
+
+        $this->checkValidUrl();
+
+        $this->checkUserSearched();
+
+    }
+
+    public function checkValidUrl()
+    {
+        $this->checkUrl();
+
+        $this->checkForocochesUrl();
+
+        $this->checkIdThread();
+    }
+
+    private function checkUrl()
+    {
+
+        if (empty($this->url)) {
+            throw new Exception('Url not found');
+        }
+    }
+
+    public function checkForocochesUrl()
+    {
+
+        $pattern = "/^(http:\/\/www.forocoches.com)/i";
+
+        if ( ! preg_match($pattern, $this->url, $salida)) {
+            throw new Exception('Forocoches url not found');
+        }
+
+    }
+
+    private function checkIdThread()
+    {
+
+        $pattern = "/(t|p)=([0-9]+)/";
+
+        if ( ! preg_match($pattern, $this->url, $configIdThread)) {
+            throw new Exception('Thread id not found in url');
+        }
+
+        $this->idThreadType = $configIdThread[1];
+        $this->numberThread = $configIdThread[2];
+
+        $this->idThread = $configIdThread;
+
+    }
+
+
+    private function checkUserSearched()
+    {
+
+        if (empty($this->userSearched)) {
+            throw new Exception('User searched not found');
+        }
+    }
+
+    public function hasLoginConfiguration()
+    {
+        return ( ! empty($this->user) and ! empty($this->password));
+    }
+
+    public function hasUser()
+    {
+        return ! empty($this->hasUser);
+    }
 
 }
+
+
