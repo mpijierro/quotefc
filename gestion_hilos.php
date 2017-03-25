@@ -1,4 +1,65 @@
 <?php
+
+
+function guardar_datos_privados($campo)
+{
+
+    if (($campo != 'user') AND ($campo != 'clave')) {
+        return true;
+    } elseif (GUARDAR_ACCESO) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Info de los hilos introducidos en el textarea
+ * @param array $hilos
+ */
+function guardar_hilos_en_archivo($hilos)
+{
+
+    if (file_exists(FICHERO_INFO_HILOS)) {
+        unlink(FICHERO_INFO_HILOS);
+    }
+
+    $fp = fopen("hilos.txt", "w+");
+    foreach ($hilos AS $hilo) {
+
+        $linea = '';
+        foreach ($hilo AS $campo => $dato) {
+            if (guardar_datos_privados($campo)) {
+                $linea .= trim($dato) . SEPARADOR;
+            }
+        }
+        fwrite($fp, $linea . PHP_EOL);
+
+    }
+    chmod(FICHERO_INFO_HILOS, 0777);
+    fclose($fp);
+}
+
+
+function obtener_hilos_desde_archivo()
+{
+
+    if ( ! file_exists(FICHERO_INFO_HILOS)) {
+        return;
+    }
+
+    $fp = fopen(FICHERO_INFO_HILOS, "r");
+    $hilos = '';
+    while ( ! feof($fp)) {
+        $hilos .= fgets($fp);
+    }
+    fclose($fp);
+
+    return $hilos;
+
+}
+
+
 $hilos = array();
 if (isset($_POST['hilos'])) {
 
@@ -51,7 +112,7 @@ if (isset($_POST['hilos'])) {
 
         $num_linea++;
     }
-
+    
     guardar_hilos_en_archivo($hilos);
 
 
@@ -62,7 +123,6 @@ if (isset($_POST['hilos'])) {
         'inicio' => trim($_POST['inicio']),
         'final' => trim($_POST['final']),
         'user' => trim($_POST['user']),
-        'clave' => trim($_POST['clave'])
+        'clave'=>trim($_POST['clave'])
     );
 }
-?>

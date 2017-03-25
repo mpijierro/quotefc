@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="es">
 <head>
-    <title>Citanding FC 1.0</title>
+    <title>Quote Fc</title>
     <meta name="Description" content="Buscador de citas a tus posts en Forocoches"/>
     <meta name="robots" content="noarchive,noindex,nofollow"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -9,19 +9,22 @@
 </head>
 <body>
 <?php
-error_reporting(0);
 
-include('constantes.php');
-include('funciones.php');
+include(__DIR__ . '/constantes.php');
+include(__DIR__ . '/VBulletin.php');
+include(__DIR__ . '/Thread.php');
+
+$thread = new Thread();
 
 if ($_POST) {
 
-    include('gestion_hilos.php');
+    include(__DIR__ . '/gestion_hilos.php');
 
     $error = false;
 
-    foreach ($hilos AS $busqueda) {
+    $thread->configSearch();
 
+    foreach ($thread->getThreads() AS $busqueda) {
         ?>
         <div class="resultado">
 
@@ -234,14 +237,14 @@ if ($_POST) {
     }
 }
 
-$contenido_textarea = obtener_hilos_desde_archivo();
+$contenido_textarea = $thread->retrieveThreadsFromFile();
 
 ?>
 
 <form name="form_fc" action="" method="post" class="form">
 
     <div class="titulo">
-        <span class="script">Citanding FC v.0.1</span>
+        <span class="script">Quote FC</span>
         ¿Te crees que has escrito un post mítico?...¿quieres saber si te han citado en alguna parte de un hilo?...Tus opiniones son tomadas
         en cuenta o por el contrario eres considerado un troll más y no pintas nada en los hilos. Para descubrir todo esto, aquí tienes una herramienta que puede servirte.<br>
         Y sobre todo, porque citar es nuestra costumbre y además de respetarla, hay que mantenerla. Además, puede fomentar el diálo, el debate e incluso el trolleo en Forocoches.com.
@@ -340,8 +343,6 @@ $contenido_textarea = obtener_hilos_desde_archivo();
                 software cubierto por esta licencia es software libre y protegerlo de intentos de apropiación que restrinjan esas libertades a los usuarios.
                 (según la Wikipedia :) ).
             </p>
-            <br/>
-            <p><strong>por <a href="http://www.forocoches.com/foro/member.php?u=541527" target="_blank">antares</a></strong></p>
         </div>
     </div>
 </form>
