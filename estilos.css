@@ -1,0 +1,161 @@
+/* 
+    Document   : estilos
+    Created on : 28-mar-2013, 16:44:44
+    Author     : antares
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+root {
+    display: block;
+}
+
+body {
+    font-size: 11px;
+    font: Arial
+}
+
+.form {
+    height: 450px;
+    margin: 30px auto 0 auto;
+    width: 620px;
+}
+
+.form span {
+    background-color: #000;
+    border: 1px solid #FF6600;
+    color: #FF6600;
+    display: block;
+    float: left;
+    font-weight: bold;
+    height: 25px;
+    line-height: 25px;
+    padding: 0 3px 0 0;
+    text-align: right;
+    width: 100px;
+}
+
+.form input {
+    border: 1px solid black;
+    height: 24px;
+    line-height: 24px;
+    margin: 0 0 0 10px
+}
+
+.form img {
+    cursor: pointer
+}
+
+.corto {
+    width: 50px
+}
+
+.medio {
+    width: 200px
+}
+
+.largo {
+    width: 420px
+}
+
+.campo {
+    float: left;
+    height: 30px;
+    width: 600px;
+}
+
+.titulo {
+    float: left;
+    height: 100px;
+    margin: 0 0 10px 0;
+    text-align: justify;
+    width: 590px
+}
+
+span.script {
+    font-size: 15px;
+    background: none;
+    border: 0;
+    padding: 0 10px 0 0;
+    width: 160px;
+}
+
+.usuario_registrado {
+    background-color: #F8B7AD;
+    border: 1px solid red;
+    float: left;
+    height: 185px;
+    padding: 5px;
+}
+
+.usuario_registrado p {
+    text-align: justify;
+}
+
+.rastreo_multiple {
+    height: 370px;
+}
+
+.aviso_cop {
+    height: 150
+}
+
+.div_aviso {
+    float: left;
+}
+
+.boton {
+    text-align: center;
+    margin: 10px 0 0 0;
+}
+
+.boton input {
+    background-color: #000000;
+    border: 1px solid #FF6600;
+    border-radius: 4px 4px 4px 4px;
+    color: #FF6600;
+    cursor: pointer;
+    width: 100px;
+}
+
+.resultado {
+    margin: 30px auto 0 auto;
+    width: 620px;
+}
+
+.resultados {
+    display: block;
+    font-weight: bold;
+    height: 25px;
+    line-height: 25px;
+    margin: 5px 0px 5px 0px;
+    text-align: center;
+    width: 620px;
+}
+
+.resultados img {
+    position: relative;
+    top: 3px;
+}
+
+.buscando {
+    background-color: #DCE6F3;
+    border: 1px solid #0003CB;
+    color: #0003CB;
+}
+
+.citado {
+    background-color: #CFF1CD;
+    border: 1px solid #056200;
+    color: #056200;
+}
+
+.no_citado {
+    background-color: #F3DCDC;
+    border: 1px solid red;
+    color: red;
+}
+
+.alone {
+    height: 60px;
+}
