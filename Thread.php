@@ -8,8 +8,8 @@ class Thread
 
     const POSITION_THREAD = 0;
     const POSITION_USER_SEARCHED = 1;
-    const POSITION_START = 2;
-    const POSITION_END = 3;
+    const POSITION_FIRST_PAGE = 2;
+    const POSITION_LAST_PAGE = 3;
     const USER_LOGIN = 4;
     const USER_PASSWORD = 5;
 
@@ -71,20 +71,37 @@ class Thread
     public function configFromRequest()
     {
 
-        $this->url = $_POST['hilo'];
-        $this->userSearched = $_POST['usuario'];
-        $this->firstPage = $_POST['inicio'];
-        $this->lastPage = $_POST['final'];
-        $this->user = $_POST['user'];
-        $this->password = $_POST['clave'];
+        $this->assignValueFromRequest();
+
+        if (empty($this->firstPage)) {
+            $this->firstPage = self::PAGE_INITIAL;
+        }
+
+        if (empty($this->lastPage)) {
+            $this->lastPage = self::NUM_PAGINAS;
+        }
 
         $this->checkThreadIsValid();
+
+    }
+
+    private function assignValueFromRequest()
+    {
+        $this->url = $this->sanitize($_POST['thread']);
+        $this->userSearched = $this->sanitize($_POST['user_searched']);
+        $this->firstPage = $this->sanitize($_POST['first_page']);
+        $this->lastPage = $this->sanitize($_POST['last_page']);
+        $this->user = $this->sanitize($_POST['user']);
+        $this->password = $this->sanitize($_POST['password']);
+
     }
 
     public function configFromArray($lineArray = [])
     {
 
         $this->lineArray = $lineArray;
+
+        $this->checkEmptyLine();
 
         $this->configUrl();
 
@@ -100,6 +117,12 @@ class Thread
 
     }
 
+    private function checkEmptyLine()
+    {
+        if (empty($this->lineArray[0])) {
+            throw new Exception('Line content not found');
+        }
+    }
 
     private function configUrl()
     {
@@ -116,10 +139,10 @@ class Thread
 
         $this->firstPage = self::PAGE_INITIAL;
 
-        $existStartConfig = (isset($this->lineArray[self::POSITION_START]) AND (is_numeric($this->lineArray[self::POSITION_START])));
+        $existFirstPageConfig = (isset($this->lineArray[self::POSITION_FIRST_PAGE]) AND (is_numeric($this->lineArray[self::POSITION_FIRST_PAGE])));
 
-        if ($existStartConfig) {
-            $this->firstPage = $this->lineArray[self::POSITION_START];
+        if ($existFirstPageConfig) {
+            $this->firstPage = $this->lineArray[self::POSITION_FIRST_PAGE];
         }
 
     }
@@ -129,10 +152,10 @@ class Thread
 
         $this->lastPage = self::NUM_PAGINAS;
 
-        $existEndConfig = (isset($this->lineArray[self::POSITION_END]) AND (is_numeric($this->lineArray[self::POSITION_END])));
+        $existLastPageConfig = (isset($this->lineArray[self::POSITION_LAST_PAGE]) AND (is_numeric($this->lineArray[self::POSITION_LAST_PAGE])));
 
-        if ($existEndConfig) {
-            $this->lastPage = $this->lineArray[self::POSITION_END];
+        if ($existLastPageConfig) {
+            $this->lastPage = $this->lineArray[self::POSITION_LAST_PAGE];
         }
 
     }
@@ -140,14 +163,19 @@ class Thread
     public function configLogin()
     {
 
-        $existUser = ! empty($lineArray[self::USER_LOGIN]);
-        $existPassword = ! empty($lineArray[self::USER_PASSWORD]);
+        $existUser = ! empty($this->lineArray[self::USER_LOGIN]);
+        $existPassword = ! empty($this->lineArray[self::USER_PASSWORD]);
 
         if ($existUser AND $existPassword) {
-            $this->user = $this->sanitize($lineArray[self::USER_LOGIN]);
-            $this->password = $this->sanitize($lineArray[self::USER_PASSWORD]);
+            $this->user = $this->sanitize($this->lineArray[self::USER_LOGIN]);
+            $this->password = $this->sanitize($this->lineArray[self::USER_PASSWORD]);
         }
 
+    }
+
+    private function sanitize($string)
+    {
+        return trim($string);
     }
 
 
@@ -221,6 +249,17 @@ class Thread
     public function hasUser()
     {
         return ! empty($this->hasUser);
+    }
+
+    public function retrieveAsLineString($addPrivateData = false)
+    {
+        $string = $this->getUrl() . Searcher::SEPARADOR . $this->getUser() . Searcher::SEPARADOR . $this->getFirstPage() . Searcher::SEPARADOR . $this->getLastPage() . Searcher::SEPARADOR;
+
+        if ($addPrivateData) {
+            $string .= $this->getUser() . Searcher::SEPARADOR . $this->getPassword();
+        }
+
+        return $string;
     }
 
 }

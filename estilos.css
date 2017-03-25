@@ -18,7 +18,7 @@ body {
 .form {
     height: 450px;
     margin: 30px auto 0 auto;
-    width: 620px;
+    width: 1024px;
 }
 
 .form span {
@@ -61,7 +61,7 @@ body {
 .campo {
     float: left;
     height: 30px;
-    width: 600px;
+    width: 1024px;
 }
 
 .titulo {
@@ -69,7 +69,7 @@ body {
     height: 100px;
     margin: 0 0 10px 0;
     text-align: justify;
-    width: 590px
+    width: 1024px
 }
 
 span.script {
@@ -97,7 +97,7 @@ span.script {
 }
 
 .aviso_cop {
-    height: 150
+    height: 150px;
 }
 
 .div_aviso {

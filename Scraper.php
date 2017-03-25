@@ -9,7 +9,7 @@ class Scraper
     private $originUrl = '';
     private $firstPage = '';
     private $lastPage = 1;
-    private $page = 1;
+    private $currentPage = 1;
     private $pages = [];
     private $cookieName = '';
 
@@ -36,17 +36,17 @@ class Scraper
         $this->lastPage = $this->thread->getLastPage();
 
         if ($this->firstPage < self::LAST_PAGE_THREAD) {
-            $this->page = $this->firstPage;
+            $this->currentPage = $this->firstPage;
         }
 
         if ((empty($this->lastPage)) OR
             ( ! is_numeric($this->lastPage)) OR
             ( ! $this->lastPage) OR
             ($this->lastPage > self::LAST_PAGE_THREAD) OR
-            ($this->page > $this->lastPage) OR
-            (($this->lastPage - $this->page) > NUM_PAGINAS)
+            ($this->currentPage > $this->lastPage) OR
+            (($this->lastPage - $this->currentPage) > NUM_PAGINAS)
         ) {
-            $this->lastPage = $this->page + NUM_PAGINAS;
+            $this->lastPage = $this->currentPage + NUM_PAGINAS;
         }
 
     }
@@ -64,15 +64,15 @@ class Scraper
         }
     }
 
-    private function configCookie()
+    private function configCookieName()
     {
-        return './' . $this->thread->getUser() . '.txt';
+        $this->cookieName = './' . $this->thread->getUser() . '.txt';
     }
 
     private function retrievePage()
     {
 
-        $url_busqueda = $this->originUrl . "&page=" . $this->page;
+        $url_busqueda = $this->originUrl . "&page=" . $this->currentPage;
 
         $s = curl_init($url_busqueda);
         curl_setopt($s, CURLOPT_HEADER, true);
@@ -90,26 +90,26 @@ class Scraper
 
         $this->configOriginUrl();
 
+        $this->configCookieName();
+
         // ***********************************************
         //3) Obtener números de página de inicio y fin
         // ***********************************************
-        $inicio = $this->thread->getFirstPage();
-        $fin = $this->thread->getLastPage();
+        $firstPage = $this->thread->getFirstPage();
+        $lastPage = $this->thread->getLastPage();
 
-        if (( ! empty($inicio)) AND (is_numeric($inicio)) AND ($inicio) AND ($inicio < 54)) {
-            $this->page = $inicio;
+        if (( ! empty($firstPage)) AND (is_numeric($firstPage)) AND ($firstPage) AND ($firstPage < 54)) {
+            $this->currentPage = $firstPage;
         } else {
-            $this->page = 1;
+            $this->currentPage = 1;
         }
 
-        if ((empty($fin)) OR ( ! is_numeric($fin)) OR ( ! $fin) OR ($fin > 54) OR ($this->page > $fin) OR (($fin - $this->page) > NUM_PAGINAS)) {
-            $fin = $this->page + NUM_PAGINAS;
+        if ((empty($lastPage)) OR ( ! is_numeric($lastPage)) OR ( ! $lastPage) OR ($lastPage > 54) OR ($this->currentPage > $lastPage) OR (($lastPage - $this->currentPage) > NUM_PAGINAS)) {
+            $lastPage = $this->currentPage + NUM_PAGINAS - 1;
         }
 
-        $final = false;
+        $isFinal = false;
         $lastSize = 0;
-
-        $this->configCookie();
 
         if ($this->thread->hasLoginConfiguration()) {
             $this->tryLogin();
@@ -119,75 +119,73 @@ class Scraper
             $this->grantPermissionToFile();
         }
 
-        $quoteNum = 0;
-        $max_limit = 0;
+        $limitCounter = 0;
 
-        while ( ! $final) {
+        while ( ! $isFinal) {
 
             ob_start();
 
-            $content = $this->retrievePage();
+            $pageContent = $this->retrievePage();
 
-
-            if ($lastSize == strlen($content)) {
-                $final = true;
+            if ($lastSize == strlen($pageContent)) {
+                $isFinal = true;
             } else {
 
                 $page = new Page();
 
+                $lastSize = strlen($pageContent);
 
-                $lastSize = strlen($content);
+                // Comprobar que la página tiene posts
+                $pattern = "/<div id=\"posts\">/";
 
-                // Comprobar que  la página tiene posts
-                $patron = "/<div id=\"posts\">/";
-
-                if ( ! preg_match($patron, $content, $salida)) {
+                if ( ! preg_match($pattern, $pageContent, $salida)) {
                     $page->postsNotFound($this->originUrl);
-                    $final = true;
+                    $isFinal = true;
 
                 } else {
 
                     // 1) Extraemos los posts de la página
-                    $patron = "#<table id=\"post([0-9]+)\"#i";
-                    $division = preg_split($patron, $content);
+                    $pattern = "#<table id=\"post([0-9]+)\"#i";
+                    $posts = preg_split($pattern, $pageContent);
 
-                    foreach ($division AS $indice => $content) {
+                    foreach ($posts AS $index => $postContent) {
 
-                        // 2) Obtenemos el id del post
-                        $patron = '#post([0-9]+)#i';
-                        if (preg_match_all($patron, $content, $salida_posts)) {
+                        // 2) Buscamos al usuario citado en el post
+                        $pattern = "/<b>" . $this->thread->getUserSearched() . "<\/b>/i";
 
-                            $id_post = $salida_posts[1][0];
+                        if (preg_match_all($pattern, $postContent, $output)) {
 
-                            // 3) Buscamos el usuario en alguna cita
-                            $patron = "/<b>" . $this->thread->getUserSearched() . "<\/b>/i";
-                            if (preg_match_all($patron, $content, $salida_posts)) {
-                                $page->quoted();
-                                $page->setUrl($this->originUrl . "#post" . $id_post);
-                                $quoteNum++;
 
-                            }
+                            $pattern = '#postcount([0-9]+)#i';
+                            preg_match_all($pattern, $postContent, $outputPost);
+                            $id_post = $outputPost[1][0];
+
+                            //var_dump($postContent, $output, $outputPost);
+
+                            //d($id_post);
+
+                            $page->quoted();
+                            $page->setUrl($this->originUrl . "&page=" . $this->currentPage . "#post" . $id_post);
+
                         }
                     }
-
-                    if ( ! $page->isQuoted()) {
-                        $page->setNumPage($this->page);
-                    }
                 }
 
+                $page->setNumPage($this->currentPage);
                 $this->pages[] = $page;
-                $this->page++;
-                $max_limit++;
+                $this->currentPage++;
+                $limitCounter++;
 
-                if (($this->page > $fin) OR ($max_limit > MAX_LIMIT)) {
-                    $final = true;
+                if (($this->currentPage > $lastPage) OR ($limitCounter > MAX_LIMIT)) {
+                    $isFinal = true;
                 }
+
             }
             ob_end_flush();
             flush();
         }
 
-
     }
+
 
 }

@@ -18,8 +18,11 @@ class Searcher
 
     public function configSearch()
     {
-        if (isset($_POST['hilos'])) {
-            $this->parserThreads(trim($_POST['hilos']));
+
+        $searchSeveralThreads = isset($_POST['threads']);
+
+        if ($searchSeveralThreads) {
+            $this->parserThreads(trim($_POST['threads']));
         } else {
             $this->defaultConfig();
         }
@@ -28,8 +31,10 @@ class Searcher
 
     private function parserThreads($threadArray = '')
     {
+
         $lineNumber = 1;
-        $contentTextarea = array_slice(explode("\n", $threadArray, 0, 50));
+        $contentTextarea = array_slice(explode("\n", $threadArray), 0, 50);
+
 
         foreach ($contentTextarea AS $line) {
 
@@ -48,7 +53,7 @@ class Searcher
             $lineNumber++;
         }
 
-        $this->saveThreadInFile($this->threads);
+        $this->saveThreadInFile();
     }
 
     private function defaultConfig()
@@ -66,23 +71,11 @@ class Searcher
         $this->threads[] = $thread;
     }
 
-    public function savePrivateData($campo)
-    {
-
-        if (($campo != 'user') AND ($campo != 'clave')) {
-            return true;
-        } elseif (GUARDAR_ACCESO) {
-            return true;
-        }
-
-        return false;
-    }
-
     /**
      * Info de los hilos introducidos en el textarea
      *
      */
-    public function saveThreadInFile($hilos)
+    public function saveThreadInFile()
     {
 
         if (file_exists(self::FICHERO_INFO_HILOS)) {
@@ -91,34 +84,30 @@ class Searcher
 
         $fp = fopen(self::FICHERO_INFO_HILOS, "w+");
 
-        foreach ($hilos AS $hilo) {
-
+        foreach ($this->threads AS $thread) {
             $linea = '';
-            foreach ($hilo AS $campo => $dato) {
-                if ($this->savePrivateData($campo)) {
-                    $linea .= trim($dato) . SEPARADOR;
-                }
-            }
+            $linea .= trim($thread->retrieveAsLineString(SAVE_PRIVATE_DATA));
             fwrite($fp, $linea . PHP_EOL);
 
         }
-        chmod(FICHERO_INFO_HILOS, 0777);
+        chmod(self::FICHERO_INFO_HILOS, 0777);
         fclose($fp);
     }
-
 
     public function retrieveThreadsFromFile()
     {
 
-        if ( ! file_exists(FICHERO_INFO_HILOS)) {
+        if ( ! file_exists(self::FICHERO_INFO_HILOS)) {
             return;
         }
 
-        $fp = fopen(FICHERO_INFO_HILOS, "r");
+        $fp = fopen(self::FICHERO_INFO_HILOS, "r");
+
         $hilos = '';
         while ( ! feof($fp)) {
             $hilos .= fgets($fp);
         }
+
         fclose($fp);
 
         return $hilos;

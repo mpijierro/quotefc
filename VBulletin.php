@@ -22,8 +22,6 @@ class VBulletin
     public function login()
     {
 
-        $this->username = trim($this->username);
-        $this->password = trim($this->password);
         $this->passwordMd5 = md5($this->password);
 
         if (strpos($this->url, 'login.php') === false) {
@@ -65,6 +63,7 @@ class VBulletin
         curl_setopt($curl, CURLOPT_COOKIEJAR, './' . $this->username . '.txt');
 
         $curl_return = curl_exec($curl);
+
         curl_close($curl);
         $curl_return = explode("\n", $curl_return);
 

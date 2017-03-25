@@ -28,7 +28,7 @@ class Page
 
     public function setNumPage($numPage)
     {
-        $this->numPage;
+        $this->numPage = $numPage;
     }
 
 
