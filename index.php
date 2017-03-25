@@ -171,6 +171,7 @@ if ($_POST) {
 
                             // 2) Obtenemos el id del post
                             $patron = "#<div id=\"post_message_([0-9]+)\">#i";
+                            $patron = '#post([0-9]+)#i';
                             if (preg_match_all($patron, $contenido, $salida_posts)) {
 
                                 $id_post = $salida_posts[1][0];
