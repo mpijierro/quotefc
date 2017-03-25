@@ -13,22 +13,21 @@ define('SEPARADOR', ':::');
     <link rel="stylesheet" href="estilos.css" type="text/css" media="screen" charset="utf-8"/>
 </head>
 <body>
-<?php
+<div class="resultado">
 
-include(__DIR__ . '/VBulletin.php');
-include(__DIR__ . '/Searcher.php');
-include(__DIR__ . '/Thread.php');
-include(__DIR__ . '/Scraper.php');
-include(__DIR__ . '/Page.php');
+    <?php
+    include(__DIR__ . '/VBulletin.php');
+    include(__DIR__ . '/Searcher.php');
+    include(__DIR__ . '/Thread.php');
+    include(__DIR__ . '/Scraper.php');
+    include(__DIR__ . '/Page.php');
 
-$searcher = new Searcher();
-$threadsFromFile = $searcher->retrieveThreadsFromFile();
+    $searcher = new Searcher();
+    $threadsFromFile = $searcher->retrieveThreadsFromFile();
 
-if ($_POST) {
+    if ($_POST) {
 
-    $searcher->configSearch();
-    ?>
-    <div class="resultado"> <?php
+        $searcher->configSearch();
 
         foreach ($searcher->getThreads() AS $thread) {
 
@@ -48,10 +47,11 @@ if ($_POST) {
 
         }
 
-        ?> </div> <?php
+    }
 
-
-}
+    ?>
+</div>
+<?php
 
 @include(__DIR__ . '/view.php');
 
