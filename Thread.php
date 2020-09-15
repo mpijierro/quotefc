@@ -208,7 +208,7 @@ class Thread
     public function checkForocochesUrl()
     {
 
-        $pattern = "/^(http:\/\/www.forocoches.com)/i";
+        $pattern = "/^(https:\/\/www.forocoches.com)/i";
 
         if ( ! preg_match($pattern, $this->url, $salida)) {
             throw new Exception('Forocoches url not found');
